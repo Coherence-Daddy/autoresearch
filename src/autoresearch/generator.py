@@ -18,6 +18,25 @@ class Generator:
         self._model = model
         self._system_prompt: str | None = None
 
+    @property
+    def skill_path(self) -> Path:
+        """Return the current skill path."""
+        return self._skill_path
+
+    @skill_path.setter
+    def skill_path(self, value: Path) -> None:
+        """Re-point the generator at a new skill file and reset the cache."""
+        self._skill_path = Path(value)
+        self._system_prompt = None
+
+    def set_skill_text(self, text: str) -> None:
+        """Override the cached system prompt directly (skips the disk read).
+
+        Used by the optimizer loop to score arbitrary skill bodies without
+        having to write them to a file first.
+        """
+        self._system_prompt = text
+
     def _load_skill(self) -> str:
         """Read and cache the skill markdown file."""
         if self._system_prompt is None:

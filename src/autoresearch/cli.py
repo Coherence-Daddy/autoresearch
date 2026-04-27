@@ -12,6 +12,7 @@ from rich.prompt import Confirm
 from rich.table import Table
 
 from .client import AnthropicClient
+from .loop import ExperimentRecord, run_optimizer
 from .orchestrate import (
     JUDGE_HUMAN_THRESHOLD,
     TEST_RETEST_THRESHOLD,
@@ -131,3 +132,53 @@ def validate(
 
     if not (report.pass_test_retest and report.pass_judge_human):
         raise typer.Exit(code=1)
+
+
+@app.command()
+def optimize(
+    config_path: Path = typer.Argument(  # noqa: B008
+        ..., exists=True, dir_okay=False, readable=True
+    ),
+    max_experiments: int = typer.Option(
+        None, "--max-experiments", help="Override config.max_experiments."
+    ),
+) -> None:
+    """Run the Phase 2 greedy optimizer loop on the target skill."""
+    config = ValidateConfig.from_yaml(config_path)
+    if max_experiments is not None:
+        config.max_experiments = max_experiments
+    client = AnthropicClient()
+
+    table = Table(title="Optimizer experiments (live)")
+    table.add_column("Exp", justify="right")
+    table.add_column("Status")
+    table.add_column("Train", justify="right")
+    table.add_column("Holdout", justify="right")
+    table.add_column("Change")
+
+    def _on_record(rec: ExperimentRecord) -> None:
+        status_color = {"baseline": "blue", "keep": "green", "discard": "red"}.get(rec.status, "")
+        train = f"{rec.train_score:.3f}"
+        holdout = f"{rec.holdout_score:.3f}" if rec.holdout_score is not None else "—"
+        _console.print(
+            f"[{status_color}]exp {rec.experiment:>3}[/] "
+            f"[{status_color}]{rec.status:<8}[/] "
+            f"train={train} holdout={holdout}  {rec.description}"
+        )
+
+    _console.rule(f"[bold]Optimizing {config.target_skill.name}[/bold]")
+    records = run_optimizer(config, client=client, on_record=_on_record)
+
+    baseline = records[0].train_score
+    final_best = max(r.train_score for r in records if r.status in ("baseline", "keep"))
+    delta = (final_best - baseline) * 100
+    color = "green" if delta > 0 else "yellow"
+    _console.print(
+        Panel.fit(
+            f"[bold {color}]Baseline {baseline:.3f} → best {final_best:.3f}  "
+            f"(Δ {delta:+.1f}pp)[/bold {color}]\n"
+            f"Experiments: {len(records) - 1} attempted, "
+            f"{sum(1 for r in records if r.status == 'keep')} kept",
+            border_style=color,
+        )
+    )

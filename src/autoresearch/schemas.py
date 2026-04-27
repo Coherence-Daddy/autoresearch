@@ -61,11 +61,18 @@ class ValidateConfig(BaseModel):
 
     target_skill: Path
     inputs: list[TestInput]
+    holdout: list[TestInput] = Field(default_factory=list)
     evals: list[Eval] = Field(min_length=1, max_length=8)
     generator_model: str = "claude-sonnet-4-6"
     judge_model: str = "claude-sonnet-4-6"
+    mutator_model: str = "claude-opus-4-7"
     judge_reruns: int = 3  # K — how many times to re-judge each output
     runs_per_input: int = 1  # how many outputs per test input
+
+    # Phase 2 optimizer knobs.
+    max_experiments: int = 20
+    holdout_every: int = 5
+    stop_at_pass_rate: float = 0.95
 
     @classmethod
     def from_yaml(cls, path: Path) -> ValidateConfig:
