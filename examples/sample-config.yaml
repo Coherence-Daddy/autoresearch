@@ -1,0 +1,25 @@
+target_skill: examples/sample-skill.md
+generator_model: claude-haiku-4-5-20251001
+judge_model: claude-haiku-4-5-20251001
+judge_reruns: 3
+runs_per_input: 1
+
+inputs:
+  - name: ai_safety
+    prompt: "Write a tweet about AI safety."
+  - name: morning_routine
+    prompt: "Write a tweet about morning routines."
+
+evals:
+  - name: under_280_chars
+    question: "Is the tweet 280 characters or fewer?"
+    pass_condition: "Total character count is at most 280."
+    fail_condition: "Output exceeds 280 characters."
+  - name: no_hashtags
+    question: "Is the tweet free of hashtags (the # symbol followed by text)?"
+    pass_condition: "No # symbols appear in the tweet text."
+    fail_condition: "Any hashtag appears."
+  - name: single_tweet
+    question: "Is the output a single tweet, not multiple tweets or a thread?"
+    pass_condition: "One self-contained tweet, no '1/' or '2/' style threading."
+    fail_condition: "Output is split into multiple numbered or sequential tweets."
