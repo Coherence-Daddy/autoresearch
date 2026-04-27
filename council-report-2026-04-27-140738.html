@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Council Report — autoresearch spec evaluation</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #5a5a5a;
+    --line: #e5e5e5;
+    --accent: #c46a4a;
+    --tint-contrarian: #fdebe6;
+    --tint-firstprinciples: #e8f1f8;
+    --tint-expansionist: #f0ebf7;
+    --tint-outsider: #fef6e0;
+    --tint-executor: #e8f3ec;
+    --pill-strong: #2e7d4f;
+    --pill-blind: #c44a4a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.55;
+    font-size: 16px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 56px 32px 96px; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 36px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px; }
+  h1 { font-size: 28px; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
+  .question { font-size: 15px; color: var(--ink-soft); margin-top: 14px; line-height: 1.5; }
+  h2 { font-size: 20px; margin: 44px 0 14px; font-weight: 600; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; margin: 24px 0 8px; font-weight: 600; }
+  p { margin: 0 0 12px; }
+  .verdict {
+    background: #fafafa;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    padding: 24px 28px;
+    border-radius: 6px;
+    margin-bottom: 36px;
+  }
+  .verdict h2:first-child { margin-top: 0; }
+  .verdict-section { margin-bottom: 20px; }
+  .verdict-section:last-child { margin-bottom: 0; }
+  .verdict-section h3 { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 8px; }
+  .one-thing { background: #1a1a1a; color: #fff; padding: 18px 22px; border-radius: 6px; margin-top: 16px; }
+  .one-thing h3 { color: #ffd9c8; margin-top: 0; }
+  ul { margin: 6px 0 12px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+
+  .alignment {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px 20px;
+    margin: 24px 0 36px;
+    background: #fafafa;
+  }
+  .alignment h3 { margin-top: 0; }
+  .axis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; font-size: 14px; }
+  .axis > div { padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: 4px; }
+  .axis strong { display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+
+  details { border: 1px solid var(--line); border-radius: 6px; margin-bottom: 12px; background: #fff; }
+  details summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    user-select: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "▸"; color: var(--ink-soft); transition: transform 0.15s; font-size: 11px; }
+  details[open] summary::before { transform: rotate(90deg); }
+  details .body { padding: 0 18px 18px 38px; color: var(--ink); }
+  details .body p { margin: 0 0 10px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; margin-left: auto; }
+  .pill.strong { background: var(--pill-strong); color: #fff; }
+  .pill.blind { background: var(--pill-blind); color: #fff; }
+
+  .advisor-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; letter-spacing: 0.04em; }
+  .tag-c   { background: var(--tint-contrarian); color: #8a3a1f; }
+  .tag-fp  { background: var(--tint-firstprinciples); color: #2c4a6a; }
+  .tag-e   { background: var(--tint-expansionist); color: #4a3a6a; }
+  .tag-o   { background: var(--tint-outsider); color: #7a5a1a; }
+  .tag-x   { background: var(--tint-executor); color: #2a5a3a; }
+
+  footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">LLM Council Report</div>
+  <h1>autoresearch — spec evaluation</h1>
+  <div class="question">Question brought to the council: evaluate the spec at <code>docs/specs/2026-04-27-autoresearch.md</code> and determine the best path. Spec proposes a standalone Python CLI that autonomously optimizes Claude Code skills via binary LLM-as-judge scoring + LLM-mutated SKILL.md, with three swappable model backends, hybrid execution modes, train/holdout split, and a live dashboard. Multi-week solo build with public-brand reputational stakes.</div>
+</header>
+
+<section class="verdict">
+  <h2>Chairman's Verdict</h2>
+
+  <div class="verdict-section">
+    <h3>Where the council agrees</h3>
+    <p>Five-for-five: do not write the harness yet. The spec inverts the risk order — it builds infrastructure around an unvalidated measurement instrument. The Contrarian, Outsider, and First Principles Thinker locate the same load-bearing assumption (the LLM judge produces signal that means something); the Executor and Expansionist reach the same conclusion from opposite directions. The toy_skill gate is unanimously dismissed as a tautology — same author writes skill, criteria, and mutator. Every advisor implicitly agrees the multi-week timeline is wrong for the current evidence base.</p>
+  </div>
+
+  <div class="verdict-section">
+    <h3>Where the council clashes</h3>
+    <p><strong>Expansionist vs. everyone.</strong> The Expansionist wants to expand scope (leaderboard, benchmark suite, fine-tune corpus, rename to skillforge) on the assumption the optimizer works. Four reviewers correctly flag this as selling the movie poster before checking the camera. The category instinct is right — a skill compiler is a real product shape — but the sequencing is wrong.</p>
+    <p><strong>Executor vs. Contrarian/First Principles on tempo.</strong> The Executor says ship the dumbest version Monday. The Contrarian and First Principles say don't ship anything until the judge is measured. The latter wins: the Executor's "single file, run it on toy_skill" still depends on toy_skill being a real gate, which it isn't.</p>
+  </div>
+
+  <div class="verdict-section">
+    <h3>Blind spots the council caught (peer review)</h3>
+    <ul>
+      <li><strong>Judge test-retest reliability is experiment zero, not a footnote.</strong> Kappa &lt; 0.7 kills the project.</li>
+      <li><strong>Mutator-generated holdout is incest.</strong> Same model writes the test and grades for it.</li>
+      <li><strong>Prior art.</strong> DSPy MIPROv2, PromptBreeder, OpenAI evals. If the differentiator is "SKILL.md-shaped + tutorial," it's a packaging play, not research — scope and name accordingly.</li>
+      <li><strong>Cost and rate-limit economics.</strong> Unmodeled. Three backends across multi-week runs implies real bills and throttling.</li>
+      <li><strong>Mutation compounding vs. oscillating.</strong> Unproven that markdown edits accumulate signal rather than drift.</li>
+      <li><strong>Runtime gap.</strong> Pure-prompt harness optimizes something Claude Code's actual loader/tools/context never executes.</li>
+      <li><strong>Human baseline.</strong> A developer reading 20 failure traces by hand may outperform the entire harness.</li>
+      <li><strong>Mutator stylistic collapse.</strong> Mutator converges to its own priors regardless of judge.</li>
+    </ul>
+  </div>
+
+  <div class="verdict-section">
+    <h3>The recommendation</h3>
+    <p>Kill the multi-week spec. Replace it with a two-week, two-phase plan with a hard kill switch.</p>
+    <p><em>Phase 1 (week 1) — instrument validation, no optimizer.</em> Pick one real skill you've used and felt was weak. Collect 30 real prompts. Hand-grade 10 gold answers. Measure judge test-retest kappa on a fixed input set across 5 reruns. Measure judge agreement with your hand-grades. Gate: kappa ≥ 0.7 AND judge-vs-human agreement ≥ 80%. If either fails, ship the dataset and the negative-result episode. Done.</p>
+    <p><em>Phase 2 (week 2, only if Phase 1 passes) — smallest viable loop.</em> Executor's plan, but on the validated skill, not toy_skill. One file, one backend, stdout logging. Real holdout: human-curated, not mutator-generated. Compare against a human-edited baseline. If it beats the human, you have a tool. Then — and only then — consider the leaderboard.</p>
+    <p>Commit publicly to publishing the negative result if Phase 1 fails. The Contrarian is right: that's the better video and the only honest one.</p>
+  </div>
+
+  <div class="one-thing">
+    <h3>The one thing to do first</h3>
+    <p style="margin: 0;">Measure judge test-retest kappa on a fixed input set this week. No code beyond the measurement script. Everything downstream is conditional on that number.</p>
+  </div>
+</section>
+
+<section class="alignment">
+  <h3>Council alignment at a glance</h3>
+  <div class="axis">
+    <div>
+      <strong>Aligned: do not build the spec as written</strong>
+      <span class="advisor-tag tag-c">Contrarian</span>
+      <span class="advisor-tag tag-fp">First Principles</span>
+      <span class="advisor-tag tag-o">Outsider</span>
+      <span class="advisor-tag tag-x">Executor</span>
+    </div>
+    <div>
+      <strong>Diverged: build it bigger</strong>
+      <span class="advisor-tag tag-e">Expansionist</span>
+    </div>
+    <div>
+      <strong>"Validate the judge first"</strong>
+      <span class="advisor-tag tag-c">Contrarian</span>
+      <span class="advisor-tag tag-o">Outsider</span>
+      <span class="advisor-tag tag-fp">First Principles</span>
+    </div>
+    <div>
+      <strong>"Ship the smallest possible loop"</strong>
+      <span class="advisor-tag tag-x">Executor</span>
+    </div>
+  </div>
+</section>
+
+<h2>Advisor responses</h2>
+
+<details>
+  <summary><span class="advisor-tag tag-c">The Contrarian</span> Validate the judge first; the toy_skill gate is theater <span class="pill strong">5/5 named strongest</span></summary>
+  <div class="body">
+    <p>This spec has a fatal flaw hiding in plain sight: the toy_skill gate is unfalsifiable theater. You wrote the gate, you write the toy skill, you write its eval criteria, and you control the mutator. Of course it'll converge 15 points. That's not an integration test — it's a participation trophy. A real gate uses a skill you didn't design with criteria someone else wrote.</p>
+    <p>Second: the Judge is your single point of failure and you're running it on the free tier. Binary LLM-as-judge on a small cloud model produces noisy, drifting labels. Your "score went up" signal is dominated by judge variance, not prompt quality. Minimum viable fix: measure judge test-retest agreement on a fixed set before writing the loop. If kappa &lt; 0.7, the whole project is built on sand.</p>
+    <p>Third: greedy single-mutation + shake-up is hill climbing with extra steps. Karpathy's loop works on systems with measurable ground truth. You don't have ground truth — you have an LLM's opinion of ground truth. Optimizing against it is Goodhart bait. The holdout guard helps, but holdout generated by the mutator itself is incestuous.</p>
+    <p>Fourth, brand risk: "Episode: I built an autoresearch tool" is a great video whether or not it works. "Episode: here's why my autoresearch tool produced no measurable lift" is a better video and the only honest one. Commit publicly to shipping the negative result. Don't write code yet. Validate the judge first.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-fp">The First Principles Thinker</span> Ship the dataset before the optimizer</summary>
+  <div class="body">
+    <p>The premise smuggles in three assumptions that need to be excavated before a single line of Python is written.</p>
+    <p><strong>Assumption 1:</strong> "Skills can be optimized." Optimized toward what? Binary yes/no evals are a proxy for a proxy. You're not building an optimizer; you're building a proxy-maximizer.</p>
+    <p><strong>Assumption 2:</strong> "An LLM judge can tell better from worse." If the judge could reliably score skill outputs, you wouldn't need the skill — you'd just use the judge. You're measuring a ruler with itself.</p>
+    <p><strong>Assumption 3:</strong> "A multi-week harness is the bottleneck." The actual bottleneck is "I don't know what good looks like for skill X until I use it on real work." A corpus of real failure cases from your actual usage fixes that. A harness doesn't.</p>
+    <p>The right question isn't "is this spec good?" It's "what would I build if I had to ship a measurably-better skill in one week?" Answer: collect 30 real prompts where your current skill underperformed, hand-write the ideal output for 10, and A/B two prompt variants by eye. Two days. If you still believe automation beats taste at this scale, build the harness — but build it on ground truth you trust, not LLM-judged binaries. Ship the dataset before the optimizer.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-e">The Expansionist</span> You're building a skill compiler — ship the leaderboard <span class="pill blind">5/5 named biggest blind spot</span></summary>
+  <div class="body">
+    <p>This spec is too small for what you've actually built. You're not shipping an "autoresearch tool." You're shipping a skill compiler — the first generally-applicable optimizer for the Claude Code skill ecosystem. That category doesn't exist yet. Name it accordingly. <code>skillforge</code>, <code>skillc</code> — but stop calling it autoresearch.</p>
+    <p>Three things to expand into the spec before code:</p>
+    <ol>
+      <li><strong>Make the optimization traces the product, not the binary.</strong> Every run produces a goldmine: starting prompt, mutation diffs, scores, judge reasoning. A public leaderboard of optimized community skills (with before/after diffs and eval criteria) becomes the flywheel. Karpathy will quote-tweet a good before/after.</li>
+      <li><strong>The Mutator's edits are a training corpus.</strong> Thousands of (prompt, eval, mutation, score-delta) tuples = fine-tune dataset for a small local "skill mutator" model. Episode N+1 writes itself. Log everything in a clean schema from day one.</li>
+      <li><strong>The toy_skill fixture is undersized ambition.</strong> Add a public benchmark suite — 5-10 real skills with real evals — and report numbers. "We improved pdf-extractor from 62% to 89% on holdout in 18 experiments" is the tweet that ships the tool.</li>
+    </ol>
+    <p>Build the optimizer. Ship the leaderboard.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-o">The Outsider</span> Three layers of stochastic noise — has anyone measured the judge?</summary>
+  <div class="body">
+    <p>Wait — how do you know this works at all? The whole tower rests on one assumption: that an LLM judge giving binary yes/no scores, on a skill executed by another LLM, mutated by a third LLM, produces a signal that means anything. Three layers of stochastic noise stacked on top of each other. I don't see anywhere in the spec where you've validated that the judge alone is reliable before building the harness around it.</p>
+    <p>A few things that read strangely from the outside:</p>
+    <ul>
+      <li>The brand promises rigor; the tool's outputs may not be coherent across reruns. Has anyone measured judge-rerun variance on a fixed input? Should be experiment zero, not a footnote.</li>
+      <li>The toy_skill gate is doing a lot of load-bearing work. If the same person designed the skill, the eval criteria, AND the mutator prompt, it will pass. That's a tautology, not an integration test.</li>
+      <li>Three different model backends across three roles, all swappable, before you've proven the loop works with one configuration end-to-end. Pick the cheapest viable stack first.</li>
+      <li>"Karpathy-inspired" is doing rhetorical work the methodology hasn't earned yet.</li>
+    </ul>
+    <p>Spend one week, not multi-week. Build the dumbest possible version. Measure judge variance and mutator-suggestion quality on 3 hand-picked skills. Then decide if the full spec is worth building.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-x">The Executor</span> Single file, one backend, run it Monday</summary>
+  <div class="body">
+    <p>The spec is overbuilt for a Monday morning. You've designed a dashboard, a lock file, and a three-backend swap matrix before there's a working harness. Cut.</p>
+    <p>Monday:</p>
+    <ol>
+      <li>Write toy_skill fixture FIRST. Five inputs, five binary criteria, hand-graded gold answers. If you can't write this in one sitting, you don't actually know what "better" means.</li>
+      <li>Hardcode pure-prompt mode. One backend for everything: Anthropic API. No Ollama, no config.yaml, no role swapping.</li>
+      <li>Single Python file. <code>run.py</code>. Loop: run skill → judge → mutate → score → keep/revert. Print to stdout. No HTML, no Chart.js. <code>tail -f log.jsonl</code> is your dashboard.</li>
+      <li>Run on toy_skill. Hit +15/+10 in 20 experiments? This is the only question that matters.</li>
+    </ol>
+    <p><strong>Cut from v1:</strong> headless mode, holdout auto-generation, dashboard, resumability, lock files, three-backend config, shake-up logic.</p>
+    <p><strong>Add only after toy_skill converges:</strong> real holdout split, then resumability, then second backend.</p>
+    <p>Failure mode: spending three weeks on infrastructure to discover in week four that the judge is noisy and mutations don't compound. Find that out Friday.</p>
+  </div>
+</details>
+
+<h2>Peer review highlights</h2>
+
+<details open>
+  <summary>What the reviewers converged on</summary>
+  <div class="body">
+    <p><strong>5 of 5 reviewers named the Contrarian as strongest.</strong> Common reasoning: only response with a measurable, falsifiable go/no-go gate (kappa ≥ 0.7) before code is written. Operationalizes a diagnosis that other advisors only describe.</p>
+    <p><strong>5 of 5 reviewers named the Expansionist as biggest blind spot.</strong> Common reasoning: pricing the leaderboard before the camera works. If judge or proxy fails, every artifact the Expansionist wants to publish is contaminated exhaust under a brand that promises rigor.</p>
+    <p><strong>4 of 5 reviewers flagged cost and rate-limit economics</strong> as the universal miss across all five advisors. Multi-week runs across three backends imply real bills and Anthropic/Ollama-cloud throttling. Spec's runtime economics are unexamined.</p>
+    <p><strong>Other items only one reviewer caught each, but worth surfacing:</strong></p>
+    <ul>
+      <li>Prior art exists (DSPy MIPROv2, PromptBreeder, OpenAI evals). If the differentiator is SKILL.md packaging, scope it as a packaging play.</li>
+      <li>Mutation diversity collapse: mutator drifts to its own stylistic priors regardless of judge.</li>
+      <li>Runtime gap: pure-prompt harness may optimize something Claude Code's actual loader/tools/context never executes.</li>
+      <li>Human-in-the-loop baseline: a dev reading 20 failure traces and hand-editing might outperform the entire harness.</li>
+      <li>Whether markdown mutations actually compound vs. oscillate.</li>
+    </ul>
+  </div>
+</details>
+
+<footer>
+  Council session — 2026-04-27 14:07:38 · evaluated <code>docs/specs/2026-04-27-autoresearch.md</code> · 5 advisors, 5 peer reviews, 1 chairman synthesis · transcript at <code>council-transcript-2026-04-27-140738.md</code>
+</footer>
+
+</div>
+</body>
+</html>
