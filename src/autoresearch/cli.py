@@ -12,7 +12,9 @@ from rich.prompt import Confirm
 from rich.table import Table
 
 from .client import AnthropicClient
-from .loop import ExperimentRecord, run_optimizer
+from .generator import Generator
+from .judge import Judge
+from .loop import ExperimentRecord, run_optimizer, score_skill
 from .orchestrate import (
     JUDGE_HUMAN_THRESHOLD,
     TEST_RETEST_THRESHOLD,
@@ -180,5 +182,89 @@ def optimize(
             f"Experiments: {len(records) - 1} attempted, "
             f"{sum(1 for r in records if r.status == 'keep')} kept",
             border_style=color,
+        )
+    )
+
+
+@app.command()
+def compare(
+    config_path: Path = typer.Argument(  # noqa: B008
+        ..., exists=True, dir_okay=False, readable=True
+    ),
+    skills: list[Path] = typer.Argument(  # noqa: B008
+        ..., help="Skill .md files to score side-by-side."
+    ),
+    use_holdout: bool = typer.Option(
+        False, "--holdout", help="Score against the holdout inputs instead of train."
+    ),
+) -> None:
+    """Score multiple skill files against the same config and print a comparison table.
+
+    Each skill is run through the generator+judge pipeline once per (input, eval).
+    Use this to compare baseline vs optimizer-best vs your hand-edit on equal terms.
+    """
+    config = ValidateConfig.from_yaml(config_path)
+    client = AnthropicClient()
+    generator = Generator(
+        client=client, skill_path=config.target_skill, model=config.generator_model
+    )
+    judge = Judge(client=client, model=config.judge_model)
+
+    inputs = config.holdout if use_holdout else config.inputs
+    if not inputs:
+        _console.print(
+            "[red]No inputs to score (holdout requested but config.holdout is empty).[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    eval_names = [e.name for e in config.evals]
+    per_skill_per_eval: dict[str, dict[str, tuple[int, int]]] = {}
+    overall: dict[str, float] = {}
+
+    for skill_path in skills:
+        if not skill_path.exists():
+            _console.print(f"[red]Missing skill file: {skill_path}[/red]")
+            raise typer.Exit(code=1)
+        text = skill_path.read_text(encoding="utf-8")
+        _console.print(f"[dim]Scoring {skill_path}...[/dim]")
+        result = score_skill(
+            skill_text=text,
+            inputs=inputs,
+            evals=config.evals,
+            generator=generator,
+            judge=judge,
+            runs_per_input=config.runs_per_input,
+        )
+        # Tally per-eval pass counts.
+        eval_tally: dict[str, tuple[int, int]] = {name: (0, 0) for name in eval_names}
+        for run in result.judge_runs:
+            passed, total = eval_tally.get(run.eval_name, (0, 0))
+            eval_tally[run.eval_name] = (passed + (1 if run.verdict else 0), total + 1)
+        per_skill_per_eval[str(skill_path)] = eval_tally
+        overall[str(skill_path)] = result.pass_rate
+
+    pool = "holdout" if use_holdout else "train"
+    table = Table(title=f"Skill comparison ({pool} inputs)")
+    table.add_column("Eval", style="bold")
+    for skill_path in skills:
+        table.add_column(skill_path.name, justify="right")
+    for eval_name in eval_names:
+        row = [eval_name]
+        for skill_path in skills:
+            tally = per_skill_per_eval[str(skill_path)][eval_name]
+            row.append(f"{tally[0]}/{tally[1]}")
+        table.add_row(*row)
+    overall_row = ["[bold]Overall[/bold]"]
+    for skill_path in skills:
+        overall_row.append(f"[bold]{overall[str(skill_path)]:.3f}[/bold]")
+    table.add_row(*overall_row)
+    _console.print(table)
+
+    # Highlight the winner.
+    best_path = max(overall, key=lambda k: overall[k])
+    _console.print(
+        Panel.fit(
+            f"[bold green]Winner ({pool}): {best_path}  ({overall[best_path]:.3f})[/bold green]",
+            border_style="green",
         )
     )

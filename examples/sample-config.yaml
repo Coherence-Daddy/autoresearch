@@ -1,14 +1,27 @@
 target_skill: examples/sample-skill.md
 generator_model: claude-haiku-4-5-20251001
 judge_model: claude-haiku-4-5-20251001
+mutator_model: claude-opus-4-7
 judge_reruns: 3
 runs_per_input: 1
+holdout_every: 5
+max_experiments: 20
 
 inputs:
   - name: ai_safety
     prompt: "Write a tweet about AI safety."
   - name: morning_routine
     prompt: "Write a tweet about morning routines."
+
+holdout:
+  - name: cooking
+    prompt: "Write a tweet about home cooking."
+  - name: travel
+    prompt: "Write a tweet about travel."
+  - name: dogs
+    prompt: "Write a tweet about dogs."
+  - name: side_projects
+    prompt: "Write a tweet about side projects."
 
 evals:
   - name: under_280_chars
