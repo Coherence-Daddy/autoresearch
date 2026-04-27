@@ -107,7 +107,7 @@ def test_run_optimizer_keeps_improvement_and_discards_regression(
     )
     mocker.patch(
         "autoresearch.loop.Mutator.propose",
-        side_effect=lambda current, failures: next(mutations),
+        side_effect=lambda current, failures, **kwargs: next(mutations),
     )
 
     log_dir = tmp_path / "run"

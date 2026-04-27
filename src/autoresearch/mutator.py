@@ -46,13 +46,22 @@ class Mutator:
         self,
         current_skill: str,
         failures: list[tuple[Output, Eval, JudgeRun]],
+        *,
+        history: list[str] | None = None,
+        force_divergent: bool = False,
     ) -> Mutation:
         """Return a single Mutation proposed by the model.
 
         ``failures`` is a list of (output, eval, judge_run) where the judge
         rated the output as failing the eval. Includes the judge's reasoning.
+
+        ``history`` is the running list of "[status] description" strings from
+        prior experiments, so the mutator avoids re-proposing tried ideas.
+
+        ``force_divergent`` instructs the mutator to deliberately try a
+        different angle (used after several stuck experiments).
         """
-        user = _build_user_prompt(current_skill, failures)
+        user = _build_user_prompt(current_skill, failures, history or [], force_divergent)
         text = self._client.complete(
             system=_SYSTEM,
             user=user,
@@ -66,24 +75,52 @@ class Mutator:
 def _build_user_prompt(
     current_skill: str,
     failures: list[tuple[Output, Eval, JudgeRun]],
+    history: list[str],
+    force_divergent: bool,
 ) -> str:
     if not failures:
-        body = "No failures observed. Propose ONE small clarification or anti-pattern that would harden the skill against an unobserved failure mode."
+        body = (
+            "No failures observed. Propose ONE small clarification or anti-pattern "
+            "that would harden the skill against an unobserved failure mode."
+        )
     else:
         chunks = []
         for i, (output, eval_criterion, judge_run) in enumerate(failures[:8], start=1):
+            criterion_line = (
+                f"Eval: {eval_criterion.name} — {eval_criterion.question}\n"
+                f"Pass if: {eval_criterion.pass_condition or '(unspecified)'}\n"
+                f"Fail if: {eval_criterion.fail_condition or '(unspecified)'}\n"
+            )
             chunks.append(
                 f"--- FAILURE {i} ---\n"
-                f"Eval: {eval_criterion.name} — {eval_criterion.question}\n"
+                f"{criterion_line}"
                 f"Judge reason: {judge_run.reasoning}\n"
                 f"Output text:\n{output.text}\n"
             )
         body = "\n".join(chunks)
 
+    history_block = ""
+    if history:
+        joined = "\n".join(f"  - {h}" for h in history[-12:])
+        history_block = (
+            f"\nPRIOR ATTEMPTS (most recent last) — do not propose the same idea again:\n{joined}\n"
+        )
+
+    divergence_note = ""
+    if force_divergent:
+        divergence_note = (
+            "\nDIVERGENCE MODE: prior attempts have not improved the score. "
+            "Propose an edit that takes a clearly different angle from the prior attempts — "
+            "consider removing or restructuring an existing instruction, adding a worked "
+            "example, or reordering sections by priority. Do not just rephrase prior tries.\n"
+        )
+
     return (
         f"CURRENT SKILL:\n```markdown\n{current_skill}\n```\n\n"
-        f"OBSERVED FAILURES:\n{body}\n\n"
-        "Propose one targeted edit per the rules in the system prompt."
+        f"OBSERVED FAILURES:\n{body}\n"
+        f"{history_block}"
+        f"{divergence_note}"
+        "\nPropose one targeted edit per the rules in the system prompt."
     )
 
 

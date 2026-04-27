@@ -143,10 +143,15 @@ def run_optimizer(
     last_score_result = baseline_score
 
     consecutive_at_target = 0
+    stuck_count = 0
+    history: list[str] = []
     for exp_id in range(1, config.max_experiments + 1):
         # Identify failures from the most recent kept score result.
-        failures = _failure_examples(last_score_result)
-        mutation = mutator.propose(best_text, failures)
+        failures = _failure_examples(last_score_result, config.evals)
+        force_divergent = stuck_count >= 3
+        mutation = mutator.propose(
+            best_text, failures, history=history, force_divergent=force_divergent
+        )
 
         candidate_text = mutation.new_skill_text
         if candidate_text == best_text:
@@ -177,9 +182,12 @@ def run_optimizer(
             best_score = candidate_score.pass_rate
             last_score_result = candidate_score
             status = "keep"
+            stuck_count = 0
             (snapshots / f"exp-{exp_id:04d}.md").write_text(candidate_text, encoding="utf-8")
         else:
             status = "discard"
+            stuck_count += 1
+        history.append(f"[{status}] {mutation.description}")
 
         holdout_score = _maybe_holdout(exp_id, config, generator, judge, best_text)
         rec = ExperimentRecord(
@@ -205,23 +213,19 @@ def run_optimizer(
     return records
 
 
-def _failure_examples(score: ScoreResult) -> list[tuple[Output, Eval, JudgeRun]]:
+def _failure_examples(score: ScoreResult, evals: list[Eval]) -> list[tuple[Output, Eval, JudgeRun]]:
     """Build the failures list a Mutator expects from a ScoreResult."""
     by_key: dict[str, Output] = {o.key: o for o in score.outputs}
+    eval_by_name: dict[str, Eval] = {e.name: e for e in evals}
     failures: list[tuple[Output, Eval, JudgeRun]] = []
     for run in score.judge_runs:
         if run.verdict:
             continue
         output = by_key.get(run.output_key)
-        if output is None:
+        eval_obj = eval_by_name.get(run.eval_name)
+        if output is None or eval_obj is None:
             continue
-        # Construct a lightweight Eval with just the name; the mutator only
-        # needs name + question, but we don't have the question here. Using a
-        # placeholder is fine — the question is also in the system prompt.
-        eval_stub = Eval(
-            name=run.eval_name, question="(see eval suite)", pass_condition="", fail_condition=""
-        )
-        failures.append((output, eval_stub, run))
+        failures.append((output, eval_obj, run))
     return failures
 
 

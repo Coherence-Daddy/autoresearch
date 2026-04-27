@@ -73,3 +73,40 @@ def test_propose_no_failures_still_works(client) -> None:
     mut = Mutator(client=client, model="m")
     result = mut.propose("original", failures=[])
     assert result.new_skill_text == "hardened skill"
+
+
+def test_user_prompt_includes_history_when_provided(client) -> None:
+    client.complete.return_value = (
+        "DESCRIPTION: try a new angle.\n\nNEW_SKILL:\n```markdown\nv2\n```"
+    )
+    mut = Mutator(client=client, model="m")
+    mut.propose(
+        "original",
+        failures=[_failure()],
+        history=["[discard] added rule X", "[discard] added rule Y"],
+    )
+    sent_user = client.complete.call_args.kwargs["user"]
+    assert "PRIOR ATTEMPTS" in sent_user
+    assert "added rule X" in sent_user
+    assert "added rule Y" in sent_user
+
+
+def test_user_prompt_force_divergent_changes_instruction(client) -> None:
+    client.complete.return_value = (
+        "DESCRIPTION: divergent attempt.\n\nNEW_SKILL:\n```markdown\ndiv\n```"
+    )
+    mut = Mutator(client=client, model="m")
+    mut.propose("original", failures=[_failure()], force_divergent=True)
+    sent_user = client.complete.call_args.kwargs["user"]
+    assert "DIVERGENCE MODE" in sent_user
+
+
+def test_user_prompt_includes_eval_pass_fail_conditions(client) -> None:
+    """Regression: previously the mutator received '(see eval suite)' instead of the question."""
+    client.complete.return_value = "DESCRIPTION: ok.\n\nNEW_SKILL:\n```markdown\nx\n```"
+    mut = Mutator(client=client, model="m")
+    mut.propose("original", failures=[_failure()])
+    sent_user = client.complete.call_args.kwargs["user"]
+    assert "Is it short?" in sent_user
+    assert "<10 chars" in sent_user
+    assert "(see eval suite)" not in sent_user
