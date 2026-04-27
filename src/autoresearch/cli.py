@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
@@ -18,6 +19,8 @@ from .orchestrate import (
     run_validation,
 )
 from .schemas import Eval, Output, ValidateConfig
+
+load_dotenv()
 
 app = typer.Typer(help="Phase 1 judge-validation gate.")
 
