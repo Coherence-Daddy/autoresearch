@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import anthropic
 import tenacity
+from dotenv import load_dotenv
+
+# Walk up from this file to find .env — works however the CLI is invoked.
+load_dotenv(Path(__file__).parents[2] / ".env", override=True)
+load_dotenv(override=True)  # fallback: search from CWD
 
 
 class AnthropicClient:
