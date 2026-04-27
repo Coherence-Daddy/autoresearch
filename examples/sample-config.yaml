@@ -3,7 +3,7 @@ generator_model: claude-haiku-4-5-20251001
 judge_model: claude-haiku-4-5-20251001
 mutator_model: claude-opus-4-7
 judge_reruns: 3
-runs_per_input: 1
+runs_per_input: 3  # average over multiple generations to reduce generator-temp variance
 holdout_every: 5
 max_experiments: 20
 

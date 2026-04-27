@@ -54,12 +54,18 @@ class Judge:
         self._model = model
 
     def score(self, output: Output, eval_criterion: Eval, rater_label: str) -> JudgeRun:
-        """Score ``output`` against ``eval_criterion`` and return a JudgeRun."""
+        """Score ``output`` against ``eval_criterion`` and return a JudgeRun.
+
+        Uses temperature=0 so a re-judged identical output returns the same verdict.
+        Phase 1 measured judge test-retest reliability — that signal only holds if
+        the judge is deterministic, which means temperature must be zero here.
+        """
         user_prompt = _build_user_prompt(output, eval_criterion)
         raw = self._client.complete(
             system=_SYSTEM_PROMPT,
             user=user_prompt,
             model=self._model,
+            temperature=0.0,
         )
         verdict, reasoning = _parse_verdict(raw)
         return JudgeRun(
