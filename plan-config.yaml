@@ -1,0 +1,98 @@
+target_skill: plan-skill.md
+generator_model: claude-haiku-4-5-20251001
+judge_model: claude-haiku-4-5-20251001
+mutator_model: claude-opus-4-7
+judge_reruns: 3
+runs_per_input: 3
+holdout_every: 5
+max_experiments: 20
+
+inputs:
+  - name: dark_mode_toggle
+    prompt: |
+      Here is the spec. Produce a plan document following the plan skill format exactly.
+
+      Spec: Add a dark mode toggle to the React settings page.
+      - A toggle switch appears in Settings > Appearance.
+      - Preference persists to localStorage.
+      - The body element receives a `data-theme="dark"` attribute when enabled.
+      - All existing Tailwind classes must remain readable in dark mode.
+      Constraints: No new npm packages. Must work in Firefox 115+.
+      Success: User can toggle, reload, and have theme persist.
+
+  - name: rate_limiting
+    prompt: |
+      Here is the spec. Produce a plan document following the plan skill format exactly.
+
+      Spec: Add per-IP rate limiting to the Express API.
+      - Every endpoint is limited to 100 requests per 15-minute window per IP.
+      - Requests over the limit receive a 429 with a Retry-After header.
+      - The window counter resets cleanly on server restart (in-memory is fine).
+      Constraints: Use express-rate-limit (already in package.json). No Redis.
+      Success: Automated test sends 101 requests and asserts 429 on the last one.
+
+holdout:
+  - name: pagination
+    prompt: |
+      Here is the spec. Produce a plan document following the plan skill format exactly.
+
+      Spec: Add cursor-based pagination to the /api/posts endpoint.
+      - Response includes `data`, `nextCursor`, and `hasMore` fields.
+      - Client passes `?cursor=<opaque>` to fetch the next page.
+      - Default page size is 20; max is 100 (clamped, not errored).
+      Constraints: PostgreSQL backend, Prisma ORM. No offset pagination.
+      Success: Integration test fetches three pages and covers the last-page edge case.
+
+  - name: csv_export
+    prompt: |
+      Here is the spec. Produce a plan document following the plan skill format exactly.
+
+      Spec: Add CSV export to the analytics dashboard.
+      - "Export CSV" button appears in the top-right of every data table.
+      - CSV includes all visible columns with their display labels as headers.
+      - File is streamed — no full-dataset in-memory buffer on the server.
+      Constraints: Node.js backend. Use the existing `fast-csv` dependency.
+      Success: Manual test exports 50k rows without a memory spike above 50 MB.
+
+  - name: email_verification
+    prompt: |
+      Here is the spec. Produce a plan document following the plan skill format exactly.
+
+      Spec: Implement email verification for new user registrations.
+      - After signup, user receives a verification email with a one-time token link.
+      - Account is created but locked until the link is clicked.
+      - Tokens expire after 24 hours; user can request a resend from the login page.
+      Constraints: Use the existing SendGrid integration. Token stored in DB (not JWT).
+      Success: E2E test covers signup → verify → login and expired-token resend flow.
+
+  - name: redis_caching
+    prompt: |
+      Here is the spec. Produce a plan document following the plan skill format exactly.
+
+      Spec: Cache expensive DB queries in Redis with TTL-based invalidation.
+      - The /api/products and /api/categories endpoints are cached for 5 minutes.
+      - Cache is invalidated on any write to the relevant tables.
+      - A cache miss is transparent to the caller (same response shape).
+      Constraints: Redis already running in docker-compose. Use ioredis.
+      Success: Integration test confirms second identical request hits cache (< 5 ms).
+
+evals:
+  - name: has_checkbox_steps
+    question: "Does the plan contain at least one checkbox step in the format '- [ ] **N. <title>**'?"
+    pass_condition: "One or more lines matching '- [ ] **' appear in the output."
+    fail_condition: "No checkbox steps appear — the output is prose, a bullet list without checkboxes, or empty."
+
+  - name: every_step_has_verify
+    question: "Does every numbered step section contain a '**Verify:**' line?"
+    pass_condition: "Each step block includes a Verify field describing how to confirm the step worked (a command, test, or observable outcome)."
+    fail_condition: "Any step is missing a Verify line, or Verify appears only in some steps but not all."
+
+  - name: steps_reference_files
+    question: "Does the plan include a '**Files:**' line inside at least one step?"
+    pass_condition: "At least one step lists the primary file(s) it touches under a Files field."
+    fail_condition: "No step contains a Files line — the plan is purely descriptive with no file references."
+
+  - name: has_done_when
+    question: "Does the plan end with a 'Done when' or '## Done when' section?"
+    pass_condition: "A 'Done when' heading or paragraph appears near the end of the document, summarising the rolled-up success criteria."
+    fail_condition: "The plan ends without a Done when section — it just stops after the last step."
