@@ -295,19 +295,29 @@ def compare(
             )
         _console.print(stab)
 
+        import math
+
+        n = repeat
+        sems = {k: v / math.sqrt(n) for k, v in stdevs.items()}
+
         winner_path = max(means, key=lambda k: means[k])
         sorted_means = sorted(means.items(), key=lambda kv: kv[1], reverse=True)
+        runner_up_path = sorted_means[1][0] if len(sorted_means) > 1 else winner_path
         gap = sorted_means[0][1] - sorted_means[1][1] if len(sorted_means) > 1 else 0.0
-        max_sd = max(stdevs.values()) if stdevs else 0.0
-        is_noisy = gap < 2 * max_sd
+        # Pooled standard error of the difference between winner and runner-up.
+        pooled_sem = math.sqrt(sems[winner_path] ** 2 + sems[runner_up_path] ** 2)
+        # Two-sigma rule on the difference of means; equivalent to a rough z = 2 test.
+        is_noisy = pooled_sem == 0.0 or gap < 2 * pooled_sem
+        z_stat = (gap / pooled_sem) if pooled_sem > 0 else float("inf")
 
         if is_noisy:
             _console.print(
                 Panel.fit(
                     f"[bold yellow]Apparent winner: {winner_path}  "
                     f"({means[winner_path]:.3f})[/bold yellow]\n"
-                    f"[yellow]Gap to runner-up: {gap:.3f}. Largest stdev: {max_sd:.3f}. "
-                    f"Gap < 2x stdev → ranking is NOISY. Don't trust this result.[/yellow]",
+                    f"[yellow]Gap to runner-up: {gap:.3f}, pooled SEM: {pooled_sem:.3f}, "
+                    f"z={z_stat:.2f}. z < 2 → ranking is NOISY. Run --repeat {n * 2} "
+                    f"or more to halve the SEM and re-test.[/yellow]",
                     border_style="yellow",
                 )
             )
@@ -315,8 +325,8 @@ def compare(
             _console.print(
                 Panel.fit(
                     f"[bold green]Winner: {winner_path}  ({means[winner_path]:.3f})[/bold green]\n"
-                    f"[dim]Gap to runner-up: {gap:.3f}, max stdev: {max_sd:.3f}. "
-                    f"Gap is at least 2x the largest stdev — ranking is stable.[/dim]",
+                    f"[dim]Gap to runner-up: {gap:.3f}, pooled SEM: {pooled_sem:.3f}, "
+                    f"z={z_stat:.2f}. z >= 2 → lift is statistically meaningful.[/dim]",
                     border_style="green",
                 )
             )
