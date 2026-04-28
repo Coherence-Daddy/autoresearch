@@ -9,20 +9,18 @@ The autoresearch tool measures whether a skill file actually causes the AI to do
 
 ## Repo location
 
+When installed as a plugin, the CLI is invoked from a clone of `Coherence-Daddy/autoresearch`. Tell the user to:
+
+```bash
+git clone https://github.com/Coherence-Daddy/autoresearch ~/autoresearch
+cd ~/autoresearch && python3 -m venv .venv && source .venv/bin/activate && pip install -e .
 ```
-/Users/exe/Downloads/Claude/CD-skill-research/
-```
+
+Then `cd ~/autoresearch && source .venv/bin/activate` is the prep for every command below.
 
 ## Setup
 
-The repo has a virtual environment already configured:
-
-```bash
-cd /Users/exe/Downloads/Claude/CD-skill-research
-source .venv/bin/activate
-```
-
-`ANTHROPIC_API_KEY` is loaded automatically from `.env` in the repo root.
+After cloning and activating the virtual environment (see "Repo location" above), `ANTHROPIC_API_KEY` is loaded automatically from `.env` in the repo root.
 
 ## Three commands
 
