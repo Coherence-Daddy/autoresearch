@@ -1,41 +1,57 @@
-# autoresearch
+# Autoresearch
 
-> Phase 1 deliverable: a **judge-validation gate** for Claude Code skill optimization.
+> An LLM-as-judge optimizer for Claude Code skill files. Validates judge reliability, runs greedy mutation experiments, produces stability-tested results with z-stat verdicts.
 
-Before optimizing a skill, you have to know your scoring instrument works. This tool measures two things:
-
-1. **Test–retest reliability** — does the LLM judge give the same answer on the same input twice? (Fleiss' kappa across K reruns.)
-2. **Judge–human agreement** — does the LLM judge agree with you when you grade the same outputs by hand? (Cohen's kappa + percent agreement.)
-
-If both gates pass (kappa ≥ 0.7, agreement ≥ 0.8) the methodology is worth building on. If either fails, the optimizer is built on sand — stop and ship the negative-result writeup instead.
-
-## Why this exists
-
-The full autoresearch spec ([`docs/specs/2026-04-27-autoresearch.md`](docs/specs/2026-04-27-autoresearch.md)) was reviewed by an LLM council ([`council-transcript-2026-04-27-140738.md`](council-transcript-2026-04-27-140738.md)). Verdict: don't build the optimizer until the judge is validated. This package is the validation gate.
+**Real result:** Optimized the `cd:plan` skill from 0.388 → 1.000 on holdout inputs (z=19.56, stdev=0.000 across 5 rounds). [See the slideshow](https://coherence-daddy.github.io/autoresearch/) for a 5-minute walkthrough.
 
 ## Install
 
+### As a Claude Code plugin
+
+```
+/plugin marketplace add Coherence-Daddy/autoresearch
+/plugin install autoresearch@autoresearch
+/reload-plugins
+```
+
+### As a standalone CLI
+
 ```bash
-pip install -e ".[dev]"
+git clone https://github.com/Coherence-Daddy/autoresearch
+cd autoresearch
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-## Run the gate
+## Three commands
 
 ```bash
-autoresearch validate examples/sample-config.yaml
+autoresearch validate my-config.yaml             # check judge reliability
+autoresearch optimize my-config.yaml             # run mutation loop
+autoresearch compare my-config.yaml a.md b.md \
+  --holdout --repeat 5                            # head-to-head with z-stat
 ```
 
-The CLI:
-1. Generates outputs for each test input using the target skill (or loads pre-existing outputs).
-2. Re-runs the judge K times per (output, eval) pair.
-3. Prompts you to hand-grade each output.
-4. Prints a report: kappa, agreement, pass/fail per gate.
+## How it works
 
-## What it does NOT do
+1. **Validate the judge** — Fleiss' kappa across K reruns, Cohen's kappa vs hand grading. Both ≥ 0.7 means the judge is trustworthy.
+2. **Optimize** — Opus mutates the skill, Haiku scores it on train inputs, the loop keeps changes that improve the score and discards the rest.
+3. **Compare** — `--repeat 5` runs the comparison five times to wash out generator-temperature noise. Reports mean, stdev, and a z-stat.
 
-- Mutate prompts. (Phase 2.)
-- Optimize anything. (Phase 2.)
-- Run a dashboard. (Phase 2.)
+## Eval design rules
 
-If Phase 1 passes, Phase 2 builds on this same package. If Phase 1 fails, this package becomes the artifact for the negative-result episode.
+- Keep evals **binary** (yes/no, not scored 1-10).
+- At least one eval must be **locally satisfiable** — pass/fail determinable from a short output fragment. Pure global properties give the mutator no gradient.
+- If the baseline scores 1.000, there's nothing to optimize. Make the evals harder.
+- If the baseline scores 0.000, the evals or prompts are broken. Fix those first.
+
+## See also
+
+- The skill file itself: [`skills/autoresearch/SKILL.md`](skills/autoresearch/SKILL.md)
+- Sample configs: [`examples/sample-config.yaml`](examples/sample-config.yaml), [`plan-config.yaml`](plan-config.yaml)
+- Methodology spec: [`docs/specs/2026-04-27-autoresearch.md`](docs/specs/2026-04-27-autoresearch.md)
+
+## License
+
+MIT
