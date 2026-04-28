@@ -1,0 +1,18 @@
+{
+  "name": "autoresearch",
+  "description": "Automatically test and optimize Claude Code skill files. Validates judge reliability, runs greedy mutation experiments to improve skill outputs, and produces stability-aware head-to-head comparisons with z-stat verdicts.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Coherence Daddy"
+  },
+  "homepage": "https://github.com/Coherence-Daddy/autoresearch",
+  "repository": "https://github.com/Coherence-Daddy/autoresearch",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "optimization",
+    "evaluation",
+    "prompt-engineering",
+    "llm-as-judge"
+  ]
+}
