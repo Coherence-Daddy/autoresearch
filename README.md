@@ -2,7 +2,9 @@
 
 > An LLM-as-judge optimizer for Claude Code skill files. Validates judge reliability, runs greedy mutation experiments, produces stability-tested results with z-stat verdicts.
 
-**Real result:** Optimized the `cd:plan` skill from 0.388 → 1.000 on holdout inputs (z=19.56, stdev=0.000 across 5 rounds). [See the slideshow](https://coherence-daddy.github.io/autoresearch/) for a 5-minute walkthrough.
+**Real result:** Optimized the `cd:plan` skill from 0.388 → 1.000 on holdout inputs (z=19.56, stdev=0.000 across 5 rounds).
+
+**Walkthrough:** [coherencedaddy.com/tutorials/autoresearch](https://coherencedaddy.com/tutorials/autoresearch) — 11-slide visual tutorial.
 
 ## Install
 
