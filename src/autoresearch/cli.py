@@ -197,12 +197,18 @@ def compare(
     use_holdout: bool = typer.Option(
         False, "--holdout", help="Score against the holdout inputs instead of train."
     ),
+    repeat: int = typer.Option(
+        1, "--repeat", "-n", help="Run the comparison N times. Reports mean ± stdev."
+    ),
 ) -> None:
     """Score multiple skill files against the same config and print a comparison table.
 
-    Each skill is run through the generator+judge pipeline once per (input, eval).
-    Use this to compare baseline vs optimizer-best vs your hand-edit on equal terms.
+    Each skill is scored ``runs_per_input`` times per input. With ``--repeat N``
+    the whole comparison runs N times so you can see whether any apparent lift
+    is real or just generator-temperature noise.
     """
+    import statistics
+
     config = ValidateConfig.from_yaml(config_path)
     client = AnthropicClient()
     generator = Generator(
@@ -217,54 +223,110 @@ def compare(
         )
         raise typer.Exit(code=1)
 
-    eval_names = [e.name for e in config.evals]
-    per_skill_per_eval: dict[str, dict[str, tuple[int, int]]] = {}
-    overall: dict[str, float] = {}
-
-    for skill_path in skills:
-        if not skill_path.exists():
-            _console.print(f"[red]Missing skill file: {skill_path}[/red]")
-            raise typer.Exit(code=1)
-        text = skill_path.read_text(encoding="utf-8")
-        _console.print(f"[dim]Scoring {skill_path}...[/dim]")
-        result = score_skill(
-            skill_text=text,
-            inputs=inputs,
-            evals=config.evals,
-            generator=generator,
-            judge=judge,
-            runs_per_input=config.runs_per_input,
-        )
-        # Tally per-eval pass counts.
-        eval_tally: dict[str, tuple[int, int]] = {name: (0, 0) for name in eval_names}
-        for run in result.judge_runs:
-            passed, total = eval_tally.get(run.eval_name, (0, 0))
-            eval_tally[run.eval_name] = (passed + (1 if run.verdict else 0), total + 1)
-        per_skill_per_eval[str(skill_path)] = eval_tally
-        overall[str(skill_path)] = result.pass_rate
-
     pool = "holdout" if use_holdout else "train"
-    table = Table(title=f"Skill comparison ({pool} inputs)")
+    eval_names = [e.name for e in config.evals]
+
+    rounds_overall: list[dict[str, float]] = []
+    last_per_skill_per_eval: dict[str, dict[str, tuple[int, int]]] = {}
+
+    for round_idx in range(repeat):
+        if repeat > 1:
+            _console.rule(f"[bold]Round {round_idx + 1} / {repeat}[/bold]")
+        round_overall: dict[str, float] = {}
+        for skill_path in skills:
+            if not skill_path.exists():
+                _console.print(f"[red]Missing skill file: {skill_path}[/red]")
+                raise typer.Exit(code=1)
+            text = skill_path.read_text(encoding="utf-8")
+            _console.print(f"[dim]Scoring {skill_path}...[/dim]")
+            result = score_skill(
+                skill_text=text,
+                inputs=inputs,
+                evals=config.evals,
+                generator=generator,
+                judge=judge,
+                runs_per_input=config.runs_per_input,
+            )
+            eval_tally: dict[str, tuple[int, int]] = {name: (0, 0) for name in eval_names}
+            for run in result.judge_runs:
+                passed, total = eval_tally.get(run.eval_name, (0, 0))
+                eval_tally[run.eval_name] = (passed + (1 if run.verdict else 0), total + 1)
+            last_per_skill_per_eval[str(skill_path)] = eval_tally
+            round_overall[str(skill_path)] = result.pass_rate
+        rounds_overall.append(round_overall)
+
+    table = Table(title=f"Skill comparison ({pool} inputs, last round)")
     table.add_column("Eval", style="bold")
     for skill_path in skills:
         table.add_column(skill_path.name, justify="right")
     for eval_name in eval_names:
         row = [eval_name]
         for skill_path in skills:
-            tally = per_skill_per_eval[str(skill_path)][eval_name]
+            tally = last_per_skill_per_eval[str(skill_path)][eval_name]
             row.append(f"{tally[0]}/{tally[1]}")
         table.add_row(*row)
-    overall_row = ["[bold]Overall[/bold]"]
+    last_row = ["[bold]Overall[/bold]"]
     for skill_path in skills:
-        overall_row.append(f"[bold]{overall[str(skill_path)]:.3f}[/bold]")
-    table.add_row(*overall_row)
+        last_row.append(f"[bold]{rounds_overall[-1][str(skill_path)]:.3f}[/bold]")
+    table.add_row(*last_row)
     _console.print(table)
 
-    # Highlight the winner.
-    best_path = max(overall, key=lambda k: overall[k])
-    _console.print(
-        Panel.fit(
-            f"[bold green]Winner ({pool}): {best_path}  ({overall[best_path]:.3f})[/bold green]",
-            border_style="green",
+    if repeat > 1:
+        stab = Table(title=f"Stability across {repeat} rounds ({pool})")
+        stab.add_column("Skill", style="bold")
+        stab.add_column("Mean", justify="right")
+        stab.add_column("Stdev", justify="right")
+        stab.add_column("Min", justify="right")
+        stab.add_column("Max", justify="right")
+        means: dict[str, float] = {}
+        stdevs: dict[str, float] = {}
+        for skill_path in skills:
+            scores = [r[str(skill_path)] for r in rounds_overall]
+            mean = statistics.mean(scores)
+            sd = statistics.stdev(scores) if len(scores) > 1 else 0.0
+            means[str(skill_path)] = mean
+            stdevs[str(skill_path)] = sd
+            stab.add_row(
+                skill_path.name,
+                f"{mean:.3f}",
+                f"{sd:.3f}",
+                f"{min(scores):.3f}",
+                f"{max(scores):.3f}",
+            )
+        _console.print(stab)
+
+        winner_path = max(means, key=lambda k: means[k])
+        sorted_means = sorted(means.items(), key=lambda kv: kv[1], reverse=True)
+        gap = sorted_means[0][1] - sorted_means[1][1] if len(sorted_means) > 1 else 0.0
+        max_sd = max(stdevs.values()) if stdevs else 0.0
+        is_noisy = gap < 2 * max_sd
+
+        if is_noisy:
+            _console.print(
+                Panel.fit(
+                    f"[bold yellow]Apparent winner: {winner_path}  "
+                    f"({means[winner_path]:.3f})[/bold yellow]\n"
+                    f"[yellow]Gap to runner-up: {gap:.3f}. Largest stdev: {max_sd:.3f}. "
+                    f"Gap < 2x stdev → ranking is NOISY. Don't trust this result.[/yellow]",
+                    border_style="yellow",
+                )
+            )
+        else:
+            _console.print(
+                Panel.fit(
+                    f"[bold green]Winner: {winner_path}  ({means[winner_path]:.3f})[/bold green]\n"
+                    f"[dim]Gap to runner-up: {gap:.3f}, max stdev: {max_sd:.3f}. "
+                    f"Gap is at least 2x the largest stdev — ranking is stable.[/dim]",
+                    border_style="green",
+                )
+            )
+    else:
+        winner_path = max(rounds_overall[-1], key=lambda k: rounds_overall[-1][k])
+        _console.print(
+            Panel.fit(
+                f"[bold green]Winner ({pool}): {winner_path}  "
+                f"({rounds_overall[-1][winner_path]:.3f})[/bold green]\n"
+                f"[dim]Single round. Use --repeat 5 to assess stability.[/dim]",
+                border_style="green",
+            )
         )
-    )
