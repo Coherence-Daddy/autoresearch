@@ -260,6 +260,96 @@ th { color: var(--ink-mute); font-weight: 500; font-family: 'JetBrains Mono', mo
     <p>Head-to-head scoring. <code>--repeat N</code> runs N rounds and reports mean ± stdev with a z-stat. Below z=2 the result is noise. Above z=2 it's real.</p>
   </div>
 </section>
+
+<section class="slide" data-slide="4" data-label="Real result">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 4 / Proof it works</div>
+    <h2>cd:plan went from 0.388 to 1.000 on holdout.</h2>
+    <p>We ran Autoresearch against the real <code>cd:plan</code> skill from <code>cd-skills</code>. Four binary evals, 2 train inputs, 4 holdout inputs Haiku had never seen.</p>
+    <table>
+      <thead><tr><th>Eval</th><th>Baseline</th><th>Optimized</th></tr></thead>
+      <tbody>
+        <tr><td>has_checkbox_steps</td><td>9/12</td><td>12/12</td></tr>
+        <tr><td>every_step_has_verify</td><td><strong style="color: var(--warn);">0/12</strong></td><td><strong style="color: var(--success);">12/12</strong></td></tr>
+        <tr><td>steps_reference_files</td><td>12/12</td><td>12/12</td></tr>
+        <tr><td>has_done_when</td><td><strong style="color: var(--warn);">0/12</strong></td><td><strong style="color: var(--success);">12/12</strong></td></tr>
+      </tbody>
+    </table>
+    <div class="metric-row">
+      <div class="metric"><div class="metric-value">+61.2pp</div><div class="metric-label">Holdout lift</div></div>
+      <div class="metric"><div class="metric-value">19.56</div><div class="metric-label">z-statistic (z≥2 = real)</div></div>
+      <div class="metric"><div class="metric-value">0.000</div><div class="metric-label">Stdev across 5 rounds</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-slide="5" data-label="Install">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 5 / Install</div>
+    <h2>Install as a plugin.</h2>
+    <p>Inside Claude Code:</p>
+<pre><code>/plugin marketplace add Coherence-Daddy/autoresearch
+/plugin install autoresearch@autoresearch
+/reload-plugins</code></pre>
+    <p>That registers the <code>autoresearch:run</code> skill so any agent can invoke it via <code>Skill</code>. The skill itself instructs the agent to clone the repo and install the Python CLI:</p>
+<pre><code>git clone https://github.com/Coherence-Daddy/autoresearch ~/autoresearch
+cd ~/autoresearch
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e .
+export ANTHROPIC_API_KEY=sk-ant-...</code></pre>
+    <p>One-time setup, then every <code>autoresearch</code> call reuses the venv.</p>
+  </div>
+</section>
+
+<section class="slide" data-slide="6" data-label="Write a config">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 6 / Step 1 — Write a config</div>
+    <h2>Tell Autoresearch what "good" means.</h2>
+    <p>An eval config is a YAML file. It declares the skill to optimize, 2-6 test inputs, a holdout set, and 2-5 binary evals.</p>
+<pre><code>target_skill: my-skill.md
+generator_model: claude-haiku-4-5-20251001
+judge_model: claude-haiku-4-5-20251001
+mutator_model: claude-opus-4-7
+runs_per_input: 3
+
+inputs:
+  - name: case_a
+    prompt: "The prompt you'd give the skill in real use."
+
+holdout:
+  - name: unseen_case
+    prompt: "A prompt the optimizer never sees."
+
+evals:
+  - name: has_required_section
+    question: "Does the output contain X?"
+    pass_condition: "What a passing output looks like."
+    fail_condition: "What a failing output looks like."</code></pre>
+    <div class="callout warn">
+      <p style="margin:0;"><strong>Eval design rule:</strong> at least one eval must be <em>locally satisfiable</em> — pass/fail determinable from a short fragment. Pure global properties starve the mutator.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-slide="7" data-label="Validate the judge">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 7 / Step 2 — Validate</div>
+    <h2>Don't trust the judge until you've measured it.</h2>
+<pre><code>autoresearch validate my-config.yaml</code></pre>
+    <p>The validator runs the judge K times on the same outputs (test-retest), then prompts you to hand-grade them (judge-vs-human). It prints a kappa per eval.</p>
+    <table>
+      <thead><tr><th>Gate</th><th>Pass threshold</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td>Test-retest κ</td><td>≥ 0.7</td><td>Judge is consistent with itself</td></tr>
+        <tr><td>Judge-human κ</td><td>≥ 0.7</td><td>Judge agrees with you</td></tr>
+        <tr><td>Agreement</td><td>≥ 0.8</td><td>Same verdict 80%+ of the time</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <p style="margin:0;">If the judge fails this gate, the optimizer's scores are meaningless. Stop, fix the eval prompts, and re-validate before continuing.</p>
+    </div>
+  </div>
+</section>
   </main>
   <script id="nav">/* injected in Task 8 */</script>
 </body>
