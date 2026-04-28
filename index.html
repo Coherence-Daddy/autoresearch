@@ -428,6 +428,76 @@ evals:
   </div>
 </section>
   </main>
-  <script id="nav">/* injected in Task 8 */</script>
+  <script id="nav">
+(function() {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const toc = document.getElementById('toc');
+  const progressLabel = document.getElementById('progress-label');
+  const progressFill = document.getElementById('progress-fill');
+  let current = 0;
+
+  // Build TOC
+  slides.forEach((slide, idx) => {
+    const label = slide.dataset.label || ('Slide ' + (idx + 1));
+    const btn = document.createElement('button');
+    btn.className = 'toc-item';
+    btn.dataset.idx = idx;
+    btn.innerHTML = '<span class="toc-num">' + String(idx + 1).padStart(2, '0') + '</span><span class="toc-label">' + label + '</span>';
+    btn.addEventListener('click', () => goTo(idx));
+    toc.appendChild(btn);
+  });
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= slides.length) return;
+    slides[current].classList.remove('active');
+    slides[idx].classList.add('active');
+    Array.from(toc.children).forEach((c, i) => c.classList.toggle('active', i === idx));
+    current = idx;
+    progressLabel.textContent = (idx + 1) + ' / ' + slides.length;
+    progressFill.style.width = ((idx + 1) / slides.length * 100) + '%';
+    history.replaceState(null, '', '#slide-' + (idx + 1));
+  }
+
+  // Keyboard nav
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'PageDown':
+      case ' ':
+        e.preventDefault();
+        goTo(current + 1);
+        break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        e.preventDefault();
+        goTo(current - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        goTo(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        goTo(slides.length - 1);
+        break;
+    }
+  });
+
+  // Hash routing on load
+  const hash = window.location.hash.match(/^#slide-(\d+)$/);
+  if (hash) {
+    const target = parseInt(hash[1], 10) - 1;
+    if (target >= 0 && target < slides.length) {
+      slides[0].classList.remove('active');
+      goTo(target);
+    } else {
+      goTo(0);
+    }
+  } else {
+    goTo(0);
+  }
+})();
+</script>
 </body>
 </html>
