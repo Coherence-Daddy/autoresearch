@@ -224,7 +224,42 @@ th { color: var(--ink-mute); font-weight: 500; font-family: 'JetBrains Mono', mo
     </div>
   </aside>
   <main id="deck">
-    <!-- slides injected in Tasks 5-7 -->
+<section class="slide active" data-slide="1" data-label="The pitch">
+  <div class="slide-inner center">
+    <div class="eyebrow">Coherence Daddy / Autoresearch</div>
+    <h1>Optimize Claude Code skills,<br>automatically.</h1>
+    <p class="lead">An LLM-as-judge optimizer that finds the changes that actually make your skill files work — verified with stability-aware statistics, not vibes.</p>
+  </div>
+</section>
+
+<section class="slide" data-slide="2" data-label="Why this exists">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 2 / Why this exists</div>
+    <h2>Skill files degrade silently.</h2>
+    <p>Skill files are markdown instructions you write for Claude. There's no compiler, no test suite, no signal that the AI actually follows them — until something breaks in production.</p>
+    <p>You can fix this two ways:</p>
+    <ul>
+      <li><strong>Manually:</strong> read 100 outputs, spot the pattern, edit the skill, run again. Slow, biased, never replicable.</li>
+      <li><strong>With Autoresearch:</strong> write 4 binary evals once, run <code>optimize</code>, get a stability-tested winner with a z-stat in 30 minutes.</li>
+    </ul>
+    <div class="callout">
+      <p style="margin:0; color: var(--ink);">This is A/B testing for prompts — but the variants are written by an Opus mutator and the grader is a Haiku judge.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-slide="3" data-label="What it does">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 3 / Three commands</div>
+    <h2>Three commands. Nothing else.</h2>
+    <h3><code>autoresearch validate</code></h3>
+    <p>Re-runs the judge K times on the same outputs and asks you to hand-grade some. Reports Fleiss' kappa (test-retest) and Cohen's kappa (judge-vs-human). Both ≥ 0.7 means the judge is trustworthy.</p>
+    <h3><code>autoresearch optimize</code></h3>
+    <p>Greedy mutation loop. Up to 20 experiments. Keeps changes that improve the train score, discards the rest. Logs every experiment to JSONL.</p>
+    <h3><code>autoresearch compare</code></h3>
+    <p>Head-to-head scoring. <code>--repeat N</code> runs N rounds and reports mean ± stdev with a z-stat. Below z=2 the result is noise. Above z=2 it's real.</p>
+  </div>
+</section>
   </main>
   <script id="nav">/* injected in Task 8 */</script>
 </body>
