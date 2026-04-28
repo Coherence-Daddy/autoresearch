@@ -350,6 +350,83 @@ evals:
     </div>
   </div>
 </section>
+
+<section class="slide" data-slide="8" data-label="Run optimize">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 8 / Step 3 — Optimize</div>
+    <h2>Run the loop.</h2>
+<pre><code>autoresearch optimize my-config.yaml</code></pre>
+    <p>For each experiment (max 20 by default):</p>
+    <ol>
+      <li><strong>Mutate:</strong> Opus reads the failing examples and proposes a single skill change.</li>
+      <li><strong>Score:</strong> Haiku generates outputs against the train inputs; the judge scores them.</li>
+      <li><strong>Decide:</strong> if the new score beats the best, keep it. Otherwise discard and try again.</li>
+      <li><strong>Holdout check:</strong> every 5 experiments, score against the held-out inputs to detect overfitting.</li>
+    </ol>
+    <p>Output is saved to <code>runs/&lt;skill&gt;-&lt;timestamp&gt;/</code>: the baseline, the best, every snapshot, and a JSONL log of every experiment.</p>
+  </div>
+</section>
+
+<section class="slide" data-slide="9" data-label="Compare with --repeat">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 9 / Step 4 — Compare</div>
+    <h2>Always run <code>--repeat 5</code>.</h2>
+<pre><code>autoresearch compare my-config.yaml \
+  runs/my-skill-2026-04-27/SKILL.md.baseline \
+  runs/my-skill-2026-04-27/SKILL.md.best \
+  --holdout --repeat 5</code></pre>
+    <p>Single-shot comparisons are dominated by generator-temperature noise — they will lie to you. <code>--repeat 5</code> runs the comparison five times and reports mean ± stdev plus a z-stat.</p>
+    <table>
+      <thead><tr><th>z-stat</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>&lt; 2</td><td>Noise. Don't ship this change.</td></tr>
+        <tr><td>2 – 5</td><td>Real but modest lift.</td></tr>
+        <tr><td>≥ 5</td><td>Strong signal. Ship it.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="slide" data-slide="10" data-label="Patterns">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 10 / What the optimizer finds</div>
+    <h2>Two patterns recur across skills.</h2>
+    <h3>1. Remove, don't add.</h3>
+    <p>The first win on the plan skill came from <em>deleting</em> the verbose 9-item self-review section. Less context, fewer ways to derail. The model already knew the format — the extra prose was diluting it.</p>
+    <h3>2. Constraints beat process instructions.</h3>
+    <p>The mutator initially tried <em>process</em> changes ("write the file in reverse order", "skeleton first, fill in later"). Those all regressed. The win was a <em>presence constraint</em>:</p>
+<pre><code>## OUTPUT BUDGET (strict)
+
+- Max 7 steps. Action ≤ 1 sentence. Verify ≤ 1 sentence.
+- `## Done when` is mandatory and the LAST section.
+- Self-check: scroll to the bottom. If the last heading
+  is not `## Done when`, shorten earlier Actions until it fits.</code></pre>
+    <p>That self-check is the magic — a model-executable recovery action, not workflow overhead.</p>
+  </div>
+</section>
+
+<section class="slide" data-slide="11" data-label="Limits & next">
+  <div class="slide-inner">
+    <div class="eyebrow">Slide 11 / Honest limits</div>
+    <h2>What this is and isn't.</h2>
+    <h3>What it is</h3>
+    <ul>
+      <li>A reproducible way to find skill improvements with statistical confidence</li>
+      <li>A stability test that catches false-positive lifts from generator noise</li>
+      <li>A complete pipeline: validate → optimize → compare → ship</li>
+    </ul>
+    <h3>What it isn't</h3>
+    <ul>
+      <li>A human-quality grader. The judge is still an LLM. Validate it before trusting it.</li>
+      <li>A free lunch. ~$5–$15 per optimize run depending on model + experiment count.</li>
+      <li>A solver for skills with no failure mode. If your baseline scores 1.000, there's nothing to optimize.</li>
+    </ul>
+    <div class="callout success">
+      <p style="margin:0; color: var(--ink);"><strong>Try it.</strong> Take any skill that "feels off" — write 4 binary evals, 6 inputs, run <code>optimize</code>. Worst case: 30 minutes and a clean null-result. Best case: a stability-tested fix you can ship.</p>
+    </div>
+    <p style="margin-top: 28px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--ink-mute);">github.com/Coherence-Daddy/autoresearch</p>
+  </div>
+</section>
   </main>
   <script id="nav">/* injected in Task 8 */</script>
 </body>
