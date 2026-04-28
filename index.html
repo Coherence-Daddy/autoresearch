@@ -7,7 +7,209 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style id="styles">/* injected in Task 4 */</style>
+  <style id="styles">
+:root {
+  --canvas: #0E0E10;
+  --panel: #16161A;
+  --line: #26262C;
+  --ink: #F5F5F7;
+  --ink-mute: #9A9AA3;
+  --accent: #FF6B4A;
+  --accent-soft: rgba(255, 107, 74, 0.12);
+  --success: #4A9D7C;
+  --info: #5B9DF9;
+  --warn: #E0B341;
+  --code-bg: #0A0A0C;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  overflow: hidden;
+}
+
+body { display: flex; }
+
+.sidebar {
+  width: 280px;
+  flex: 0 0 280px;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-header { margin-bottom: 28px; }
+.brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+.brand-sub {
+  font-size: 13px;
+  color: var(--ink-mute);
+  margin-top: 6px;
+}
+
+#toc { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.toc-item {
+  background: transparent;
+  border: none;
+  color: var(--ink-mute);
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  transition: background 120ms ease, color 120ms ease;
+}
+.toc-item:hover { background: rgba(255,255,255,0.04); color: var(--ink); }
+.toc-item.active { background: var(--accent-soft); color: var(--accent); }
+.toc-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  width: 22px;
+  flex-shrink: 0;
+}
+.toc-label { font-size: 14px; }
+
+.progress { margin-top: 18px; }
+.progress-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+}
+.progress-bar {
+  height: 3px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0;
+  transition: width 220ms ease;
+}
+
+main#deck {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  padding: 64px 80px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+.slide.active { opacity: 1; pointer-events: auto; }
+.slide-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+.slide-inner.center {
+  margin: auto;
+  text-align: center;
+}
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+h1 { font-size: 56px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 18px; }
+h2 { font-size: 36px; font-weight: 600; line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 14px; }
+h3 { font-size: 20px; font-weight: 600; margin: 22px 0 10px; }
+p { color: var(--ink-mute); margin-bottom: 14px; max-width: 720px; }
+p.lead { font-size: 22px; color: var(--ink); }
+
+ul, ol { margin: 12px 0 18px 22px; color: var(--ink-mute); }
+li { margin-bottom: 8px; }
+li strong { color: var(--ink); }
+
+code, pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px 22px;
+  margin: 14px 0;
+  overflow-x: auto;
+}
+pre code { background: transparent; padding: 0; color: var(--ink); }
+
+table {
+  border-collapse: collapse;
+  margin: 14px 0;
+  width: 100%;
+}
+th, td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 14px;
+}
+th { color: var(--ink-mute); font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+.callout {
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin: 18px 0;
+}
+.callout.success { border-left-color: var(--success); }
+.callout.info { border-left-color: var(--info); }
+.callout.warn { border-left-color: var(--warn); }
+
+.metric-row { display: flex; gap: 36px; margin: 24px 0; flex-wrap: wrap; }
+.metric { }
+.metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 36px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.metric-label {
+  font-size: 13px;
+  color: var(--ink-mute);
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .sidebar { width: 100%; flex: 0 0 auto; }
+  body { flex-direction: column; }
+  .slide { padding: 32px 24px; }
+  h1 { font-size: 36px; }
+  h2 { font-size: 26px; }
+}
+  </style>
 </head>
 <body>
   <aside class="sidebar">
